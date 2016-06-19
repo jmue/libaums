@@ -74,6 +74,8 @@ public class FatDirectory implements UsbFile {
 
 	private String volumeLabel;
 
+    private boolean hasBeenInited;
+
 	/**
 	 * Constructs a new FatDirectory with the given information.
 	 * 
@@ -116,6 +118,7 @@ public class FatDirectory implements UsbFile {
 			BlockDeviceDriver blockDevice, FAT fat, Fat32BootSector bootSector, FatDirectory parent) {
 		FatDirectory result = new FatDirectory(blockDevice, fat, bootSector, parent);
 		result.entry = entry;
+        result.hasBeenInited = true;
 		return result;
 	}
 
@@ -162,9 +165,11 @@ public class FatDirectory implements UsbFile {
 
 		// only read entries if we have no entries
 		// otherwise newly created directories (. and ..) will read trash data
-		if(entries.size() == 0) {
+		if(entries.size() == 0 && !hasBeenInited) {
 			readEntries();
 		}
+
+		hasBeenInited = true;
 	}
 
 	/**
@@ -379,7 +384,7 @@ public class FatDirectory implements UsbFile {
 
 		FatDirectory result = FatDirectory.create(entry, blockDevice, fat, bootSector, this);
 
-		result.init(); // initialise directory before adding sub-directories
+		result.entries = new ArrayList<FatLfnDirectoryEntry>(); // initialise entries before adding sub-directories
 
 		// first create the dot entry which points to the dir just created
 		FatLfnDirectoryEntry dotEntry = FatLfnDirectoryEntry
@@ -580,7 +585,7 @@ public class FatDirectory implements UsbFile {
 		if (destinationDir.lfnMap.containsKey(entry.getName().toLowerCase(Locale.getDefault())))
 			throw new IOException("item already exists in destination!");
 
-		parent.init();
+        init();
 		destinationDir.init();
 
 		// now the actual magic happens!
@@ -621,7 +626,7 @@ public class FatDirectory implements UsbFile {
 		if (destinationDir.lfnMap.containsKey(entry.getName().toLowerCase(Locale.getDefault())))
 			throw new IOException("item already exists in destination!");
 
-		parent.init();
+		init();
 		destinationDir.init();
 
 		// now the actual magic happens!
